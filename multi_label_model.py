@@ -3,26 +3,26 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipe
 import torch
 from tqdm import tqdm
 
-# 1. 载入清洗后的数据
+# 1. load clean data
 df = pd.read_csv("youtube_comments_clean.csv")
 df["comment_clean"] = df["comment_clean"].astype(str)
 df = df[df["comment_clean"].str.strip().str.len() > 0]
 
-
-MODEL_NAME = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+MODEL_NAME = "j-hartmann/emotion-english-distilroberta-base"
 
 # 2. tokenizer 和 model
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
 
-device = 0 if torch.cuda.is_available() else -1  # GPU 优先
+device = 0 if torch.cuda.is_available() else -1  # GPU
 
-# 3. sentiment pipeline
+# 3. emotion pipeline
+# text-classification
 sentiment_pipeline = pipeline(
-    "sentiment-analysis",
+    "text-classification",
     model=model,
     tokenizer=tokenizer,
-    device=device,            # GPU: 0, CPU: -1
+    device=device,    # GPU: 0, CPU: -1
     truncation=True
 )
 
@@ -33,20 +33,21 @@ batch_size = 32
 all_labels = []
 all_scores = []
 
-for i in tqdm(range(0, len(texts), batch_size), desc="Sentiment"):
+for i in tqdm(range(0, len(texts), batch_size), desc="Emotion"):
     batch = texts[i:i+batch_size]
     outputs = sentiment_pipeline(batch, truncation=True)
     for out in outputs:
         all_labels.append(out["label"])
         all_scores.append(out["score"])
 
-# 5. write to DataFrame
+# 5. write DataFrame
 df["sentiment_label"] = all_labels
 df["sentiment_score"] = all_scores
 
-label_map = {"negative": -1, "neutral": 0, "positive": 1,
-             "NEGATIVE": -1, "NEUTRAL": 0, "POSITIVE": 1}
-df["sentiment_numeric"] = df["sentiment_label"].map(label_map)
+# anger=0, disgust=1, fear=2, joy=3, sadness=4, surprise=5
+df["sentiment_numeric"] = pd.Categorical(df["sentiment_label"]).codes
 
-df.to_csv("youtube_comments_with_sentiment.csv", index=False)
-print(df[["comment", "sentiment_label", "sentiment_score"]].head(10))
+df.to_csv("youtube_comments_with_emotion.csv", index=False)
+
+cols_to_show = [c for c in ["comment", "comment_clean", "sentiment_label", "sentiment_score", "sentiment_numeric"] if c in df.columns]
+print(df[cols_to_show].head(10))
