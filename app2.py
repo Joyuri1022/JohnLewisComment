@@ -92,7 +92,7 @@ sort_columns = []
 if "publishedAt" in df.columns:
     sort_columns.append("publishedAt")
 if "likeCount" in df.columns:
-    sort_columns.append("likeCount")
+    sort_columns.append("likes")
 
 sort_by = st.selectbox("Sort by:", options=sort_columns)
 
