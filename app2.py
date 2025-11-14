@@ -33,7 +33,7 @@ def load_data(path: str = "youtube_comments_with_emotion.csv") -> pd.DataFrame:
 df = load_data()
 
 # Title
-st.title("📊 YouTube Comment Emotion Analysis")
+st.title("📊 John Lewis Christmas Ad Comment Emotion Analysis")
 
 st.markdown(
     """
