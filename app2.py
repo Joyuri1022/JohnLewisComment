@@ -78,21 +78,38 @@ st.subheader("2️⃣ Browse Comments by Emotion")
 emotion_options = sorted(df["sentiment_label"].unique().tolist())
 selected_emotion = st.selectbox("Select an emotion:", options=emotion_options)
 
+# Filter by emotion
 filtered = df[df["sentiment_label"] == selected_emotion].copy()
 
 st.write(f"Total **{len(filtered)}** comments classified as: **{selected_emotion}**")
 
-# Keyword search within that emotion
+# Optional keyword search
 keyword = st.text_input("Optional keyword filter:", value="")
-
 if keyword.strip():
     filtered = filtered[filtered["comment_clean"].str.contains(keyword, case=False, na=False)]
 
-# Limit display
+sort_columns = []
+if "publishedAt" in df.columns:
+    sort_columns.append("publishedAt")
+if "likeCount" in df.columns:
+    sort_columns.append("likeCount")
+
+sort_by = st.selectbox("Sort by:", options=sort_columns)
+
+sort_order = st.radio("Order:", ["Ascending", "Descending"], index=1)
+
+if sort_by in filtered.columns:
+    filtered = filtered.sort_values(
+        by=sort_by,
+        ascending=(sort_order == "Ascending")
+    )
+
+# Limit displayed rows
 top_n = st.slider("Show top N comments:", min_value=5, max_value=200, value=20, step=5)
 
-show_cols = [c for c in ["comment", "comment_clean", "sentiment_label", "sentiment_score"] if c in filtered.columns]
+show_cols = [c for c in ["comment", "comment_clean", "publishedAt", "likeCount", "sentiment_label", "sentiment_score"] if c in filtered.columns]
 st.dataframe(filtered[show_cols].head(top_n))
+
 
 # 3. Emotion score distribution
 st.subheader("3️⃣ Confidence Score Distribution")
