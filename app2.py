@@ -73,12 +73,14 @@ chart = (
 st.altair_chart(chart, use_container_width=True)
 
 # 2. View comments by emotion
+# 2️⃣ Browse Comments by Emotion
 st.subheader("2️⃣ Browse Comments by Emotion")
 
+# Emotion selection
 emotion_options = sorted(df["sentiment_label"].unique().tolist())
 selected_emotion = st.selectbox("Select an emotion:", options=emotion_options)
 
-# Filter by emotion
+# Filter by selected emotion
 filtered = df[df["sentiment_label"] == selected_emotion].copy()
 
 st.write(f"Total **{len(filtered)}** comments classified as: **{selected_emotion}**")
@@ -86,29 +88,52 @@ st.write(f"Total **{len(filtered)}** comments classified as: **{selected_emotion
 # Optional keyword search
 keyword = st.text_input("Optional keyword filter:", value="")
 if keyword.strip():
-    filtered = filtered[filtered["comment_clean"].str.contains(keyword, case=False, na=False)]
+    if "comment" in filtered.columns:
+        filtered = filtered[filtered["comment"].str.contains(keyword, case=False, na=False)]
+    else:
+        filtered = filtered[filtered["comment_clean"].str.contains(keyword, case=False, na=False)]
 
+# Sorting options
 sort_columns = []
+
+# Add publishedAt if exists
 if "publishedAt" in df.columns:
     sort_columns.append("publishedAt")
-if "likeCount" in df.columns:
+
+# likes if exists
+if "likes" in df.columns:
     sort_columns.append("likes")
+
+# sentiment_score
+if "sentiment_score" in df.columns:
+    sort_columns.append("sentiment_score")
 
 sort_by = st.selectbox("Sort by:", options=sort_columns)
 
 sort_order = st.radio("Order:", ["Ascending", "Descending"], index=1)
 
+# Apply sorting
 if sort_by in filtered.columns:
     filtered = filtered.sort_values(
         by=sort_by,
         ascending=(sort_order == "Ascending")
     )
 
-# Limit displayed rows
+# Display options
 top_n = st.slider("Show top N comments:", min_value=5, max_value=200, value=20, step=5)
 
-show_cols = [c for c in ["comment", "comment_clean", "publishedAt", "likeCount", "sentiment_label", "sentiment_score"] if c in filtered.columns]
+# Columns to display (NO comment_clean)
+show_cols = [c for c in [
+    "comment",
+    "publishedAt",
+    "likes",
+    "sentiment_label",
+    "sentiment_score"
+] if c in filtered.columns]
+
 st.dataframe(filtered[show_cols].head(top_n))
+
+
 
 
 # 3. Emotion score distribution
