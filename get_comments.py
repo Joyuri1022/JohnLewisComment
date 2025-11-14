@@ -1,9 +1,9 @@
 from googleapiclient.discovery import build
 import pandas as pd
 from tqdm import tqdm
-
-API_KEY = "AIzaSyAXEWFI7ck_YYRXY4sxvm8Qhe54HL9v4tE"
-VIDEO_ID = "z1bRlnyQeDk" # ← 替换成目标视频 ID
+import os
+API_KEY = os.getenv("YT_API_KEY")
+VIDEO_ID = "z1bRlnyQeDk"
 
 def get_youtube_comments(video_id, api_key):
     youtube = build("youtube", "v3", developerKey=api_key)

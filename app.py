@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-# ===== 基本配置 =====
 st.set_page_config(
     page_title="YouTube Sentiment Dashboard",
     layout="wide"
@@ -10,17 +9,15 @@ st.set_page_config(
 @st.cache_data
 def load_data(path: str):
     df = pd.read_csv(path)
-    # 确保这些列存在，如果你的列名不同，这里改一下
     if "comment_clean" not in df.columns and "comment" in df.columns:
         df["comment_clean"] = df["comment"].astype(str)
-    # 统一类型
     df["comment_clean"] = df["comment_clean"].astype(str)
     if "sentiment_label" in df.columns:
         df["sentiment_label"] = df["sentiment_label"].astype(str)
     return df
 
 
-# ===== 侧边栏：数据加载 & 过滤条件 =====
+# sidebar
 st.sidebar.title("Settings")
 
 csv_path = st.sidebar.text_input(
@@ -29,18 +26,18 @@ csv_path = st.sidebar.text_input(
 )
 
 if not csv_path:
-    st.sidebar.warning("请输入 CSV 路径")
+    st.sidebar.warning("please enter CSV path")
     st.stop()
 
 try:
     df = load_data(csv_path)
 except Exception as e:
-    st.sidebar.error(f"无法加载 CSV：{e}")
+    st.sidebar.error(f"can't load CSV：{e}")
     st.stop()
 
-st.sidebar.success(f"已加载 {len(df)} 条评论")
+st.sidebar.success(f"loaded {len(df)} comment")
 
-# 情绪筛选
+# sentiment selection
 if "sentiment_label" in df.columns:
     all_sentiments = sorted(df["sentiment_label"].dropna().unique().tolist())
     selected_sentiments = st.sidebar.multiselect(
@@ -51,10 +48,10 @@ if "sentiment_label" in df.columns:
 else:
     selected_sentiments = None
 
-# 关键词搜索
+# keyword
 keyword = st.sidebar.text_input("Keyword in comment (optional)", value="")
 
-# 最小点赞
+# min likes
 if "likes" in df.columns:
     min_likes = int(df["likes"].min())
     max_likes = int(df["likes"].max())
@@ -67,7 +64,7 @@ if "likes" in df.columns:
 else:
     like_filter = None
 
-# ===== 应用过滤 =====
+# apply filter
 filtered = df.copy()
 
 if selected_sentiments is not None and len(selected_sentiments) > 0:
@@ -80,14 +77,14 @@ if keyword.strip():
 if like_filter is not None and "likes" in filtered.columns:
     filtered = filtered[filtered["likes"] >= like_filter]
 
-# ===== 主界面：标题 =====
+# Title
 st.title("YouTube Comments Sentiment Dashboard")
 
 st.markdown(
-    "这个面板展示了你对某个 YouTube 视频评论做的情感分析结果。"
+    "This dashboard shows you the sentiment of comments of YouTube Video: John Lewis Christmas Ad 2025.",
 )
 
-# ===== 全局指标 =====
+# metrics
 col1, col2, col3 = st.columns(3)
 
 total_comments = len(df)
@@ -104,7 +101,7 @@ with col3:
 
 st.divider()
 
-# ===== 情绪分布图 =====
+# Sentiment distribution
 if "sentiment_label" in filtered.columns:
     st.subheader("Sentiment distribution (filtered)")
     sent_counts = (
@@ -118,19 +115,19 @@ if "sentiment_label" in filtered.columns:
 
     st.dataframe(sent_counts, use_container_width=True)
 else:
-    st.info("当前数据没有 sentiment_label 列，无法画情绪分布。")
+    st.info("Current data don't have sentiment_label column.")
 
 st.divider()
 
-# ===== 时间维度（如果有 publishedAt） =====
+# Sentiment over time
 if "publishedAt" in filtered.columns:
     st.subheader("Sentiment over time")
 
-    # 转成 datetime
+    # change to datetime
     filtered["_published_dt"] = pd.to_datetime(filtered["publishedAt"], errors="coerce")
     time_df = filtered.dropna(subset=["_published_dt"]).copy()
     if not time_df.empty:
-        # 按日期聚合
+        # by date
         time_df["date"] = time_df["_published_dt"].dt.date
         daily = (
             time_df
@@ -140,15 +137,15 @@ if "publishedAt" in filtered.columns:
             .reset_index()
         )
 
-        # 转为透视表便于画图
+        # pivot table
         pivot = daily.pivot(index="date", columns="sentiment_label", values="count").fillna(0)
         st.line_chart(pivot)
     else:
-        st.info("publishedAt 列无法转换为日期。")
+        st.info("publishedAt can't transfer to date。")
 
 st.divider()
 
-# ===== 展示具体评论（表格） =====
+# show comment in table
 st.subheader("Sample comments (filtered)")
 
 n_show = st.slider("Number of rows to show", min_value=5, max_value=200, value=50)
